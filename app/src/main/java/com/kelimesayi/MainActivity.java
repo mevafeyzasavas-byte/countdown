@@ -4,9 +4,12 @@ import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.webkit.WebViewAssetLoader;
+import androidx.webkit.WebViewClientCompat;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -17,6 +20,7 @@ import java.security.MessageDigest;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
+    private WebViewAssetLoader assetLoader;
     // !!! KENDI GITHUB RAW LINKINIZ !!!
     private final String GITHUB_RAW_URL = "https://raw.githubusercontent.com/mevafeyzasavas-byte/countdown/main/app/src/main/assets/index.html";
     private final String LOCAL_FILE_NAME = "index.html";
@@ -28,7 +32,20 @@ public class MainActivity extends AppCompatActivity {
         webView = new WebView(this);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
-        webView.setWebViewClient(new WebViewClient());
+
+        // Hem "files" (guncellenen dosya) hem "assets" (yerel yedek) icin path handler
+        assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/files/", new WebViewAssetLoader.InternalStoragePathHandler(this, getFilesDir()))
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
+        webView.setWebViewClient(new WebViewClientCompat() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+        });
+
         setContentView(webView);
 
         // ÖNCE yerel dosyayı yükle (kullanıcı hemen oyunu görsün)
@@ -41,9 +58,9 @@ public class MainActivity extends AppCompatActivity {
     private void loadLocalFile() {
         File file = new File(getFilesDir(), LOCAL_FILE_NAME);
         if (file.exists()) {
-            webView.loadUrl("file://" + file.getAbsolutePath());
+            webView.loadUrl("https://appassets.androidplatform.net/files/" + LOCAL_FILE_NAME);
         } else {
-            webView.loadUrl("file:///android_asset/index.html");
+            webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
         }
     }
 
@@ -84,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // Güncelleme indirildi → UI thread'inde WebView'i yeniden yükle
                         new Handler(Looper.getMainLooper()).post(() -> {
-                            webView.loadUrl("file://" + localFile.getAbsolutePath());
+                            webView.loadUrl("https://appassets.androidplatform.net/files/" + LOCAL_FILE_NAME);
                         });
                     }
                 }
