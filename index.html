@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kelime & Sayı</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F6F2E8">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F2E8; --paper2:#ECE5D3; --card:#FFFDF9; --line:#E2D9C2; --line-soft:#EEE7D6;
+  --ink:#1B1712; --muted:#8A8170;
+  --word:#8B5A2B; --word-soft:#F1E4CE; --word-line:#D3B688;
+  --num:#0F4A44; --num-soft:#DCEAE6; --num-line:#A9CCC5;
+  --bad:#9C3B34; --bad-soft:#F7E4E1;
+  --shadow-sm:0 1px 2px rgba(27,23,18,.06);
+  --shadow-md:0 10px 28px rgba(27,23,18,.09);
+  --shadow-lg:0 20px 48px rgba(27,23,18,.13);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+html,body{height:100%;}
+body{
+  margin:0; background:
+    radial-gradient(circle at 12% -6%, rgba(139,90,43,.05), transparent 42%),
+    radial-gradient(circle at 88% 104%, rgba(15,74,68,.06), transparent 42%),
+    var(--paper);
+  color:var(--ink); font-family:'Inter',sans-serif; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+button{font:inherit; cursor:pointer;}
+button:focus-visible, .tile:focus-visible, .pick-card:focus-visible{outline:2.5px solid var(--ink); outline-offset:3px; border-radius:4px;}
+.app{width:100%; height:100%; max-width:720px; display:flex; flex-direction:column; padding:24px;}
+.serif{font-family:'Fraunces',serif;}
+h1{font-family:'Fraunces',serif; font-weight:600; font-size:clamp(28px,7vw,40px); margin:4px 0 12px; letter-spacing:.1px;}
+.rule{width:46px; height:2px; background:linear-gradient(90deg,var(--word),var(--num)); border:none; border-radius:2px; margin:0 0 14px;}
+.sub{color:var(--muted); font-size:14.5px; margin:0 0 20px; line-height:1.6; font-style:italic; font-family:'Fraunces',serif;}
+
+/* HOME */
+#home{display:flex; flex-direction:column; height:100%;}
+.picker{flex:1; display:flex; gap:18px; min-height:0;}
+@media (max-width:520px){.picker{flex-direction:column;}}
+.pick-card{
+  flex:1; border-radius:20px; border:1px solid var(--line); cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  background:var(--card); box-shadow:var(--shadow-sm);
+  transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, border-color .2s ease;
+  position:relative; overflow:hidden; padding:30px 24px;
+}
+.pick-card::before{content:'';position:absolute; top:0; left:0; right:0; height:3px; background:var(--word); opacity:0; transition:opacity .2s ease;}
+.pick-card.num::before{background:var(--num);}
+.pick-card:hover{box-shadow:var(--shadow-md); transform:translateY(-3px); border-color:var(--word-line);}
+.pick-card.num:hover{border-color:var(--num-line);}
+.pick-card:hover::before{opacity:1;}
+.pick-card:active{transform:translateY(-1px) scale(.98);}
+.pick-card .glyph{font-family:'Fraunces',serif; font-size:clamp(46px,11vw,68px); font-weight:600; line-height:1;}
+.pick-card.word .glyph{color:var(--word);}
+.pick-card.num .glyph{color:var(--num);}
+.pick-card .label{font-size:16px; font-weight:600; letter-spacing:.1px; color:var(--ink);}
+.pick-card .desc{font-size:13px; color:var(--muted); max-width:220px; text-align:center; line-height:1.6;}
+
+/* GAME SCREEN */
+.game{display:none; flex-direction:column; height:100%;}
+.game.active{display:flex;}
+.topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px;}
+.back{background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:12px; padding:9px 15px; font-size:14px; font-weight:600; font-family:'Inter',sans-serif; box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, transform .15s ease;}
+.back:active{transform:scale(.96);}
+.mode-title{flex:1; text-align:center; font-family:'Fraunces',serif; font-size:19px; color:var(--word); font-weight:600; letter-spacing:.2px;}
+.game.num .mode-title{color:var(--num);}
+.help-btn{width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-weight:700; font-size:14px; flex:0 0 auto; box-shadow:var(--shadow-sm); font-family:'Fraunces',serif;}
+.help-btn.on{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+.timer{min-width:48px; height:38px; padding:0 8px; border-radius:12px; border:1px solid var(--line); background:var(--card); flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:16px; color:var(--ink); box-shadow:var(--shadow-sm); transition:color .15s ease, border-color .15s ease, background .15s ease;}
+.timer.low{color:var(--bad); border-color:var(--bad); background:var(--bad-soft);}
+.help-text{
+  max-height:0; overflow:hidden; transition:max-height .25s ease, margin .25s ease, padding .25s ease;
+  font-size:13.5px; color:var(--muted); line-height:1.6; background:var(--paper2); border-radius:14px; border:1px solid var(--line-soft);
+}
+.help-text.open{max-height:160px; margin-bottom:12px; padding:13px 15px;}
+
+.stage{flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;}
+
+/* word tiles */
+.tiles{display:flex; flex-wrap:wrap; justify-content:center; gap:11px; padding:6px;}
+.tile{
+  width:clamp(42px,11vw,60px); min-height:clamp(52px,13.5vw,74px); height:auto;
+  background:var(--card); border:1px solid var(--line); border-radius:13px;
+  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.7);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:6px 3px;
+  font-family:'Fraunces',serif; font-weight:600; font-size:clamp(22px,5.5vw,32px); color:var(--word); line-height:1;
+  cursor:pointer; user-select:none;
+  transition:box-shadow .15s ease, transform .12s ease;
+}
+.tile:hover{box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.7);}
+.tile:active{transform:scale(.94);}
+.tile-expr{font-family:'Inter',sans-serif; font-size:10px; font-weight:700; letter-spacing:.2px; color:var(--num); opacity:.8;}
+.game.word .tile.sel{border-color:var(--word); background:var(--word-soft); box-shadow:0 0 0 2px var(--word) inset;}
+.game.num .tile{color:var(--num);}
+.tile.used{opacity:.28; pointer-events:none; box-shadow:none;}
+.tile.sel{border-color:var(--num); background:var(--num-soft); box-shadow:0 0 0 2px var(--num) inset;}
+.tile.derived{box-shadow:0 0 0 1.5px var(--num) inset, var(--shadow-sm);}
+.target-big{font-family:'Fraunces',serif; font-size:clamp(40px,10vw,62px); color:var(--ink); font-weight:700;}
+.target-cap{font-size:12.5px; letter-spacing:.3px; color:var(--muted); font-family:'Fraunces',serif; font-style:italic;}
+
+.last-op{
+  max-height:0; opacity:0; overflow:hidden; text-align:center;
+  font-size:13.5px; font-weight:600; color:var(--num); background:var(--num-soft);
+  border:1px solid var(--num-line); border-radius:12px;
+  transition:max-height .25s ease, opacity .25s ease, padding .25s ease, margin .25s ease;
+}
+.last-op.show{max-height:44px; opacity:1; padding:9px 14px; margin-top:-4px;}
+
+.btn-link{
+  background:none; border:none; color:var(--num); font-family:'Inter',sans-serif;
+  font-size:13px; font-weight:600; text-decoration:underline; text-underline-offset:3px;
+  padding:2px 4px; display:none;
+}
+.btn-link.show{display:inline-block;}
+
+.big-picker{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;}
+.big-picker-label{font-size:12.5px; color:var(--muted); font-weight:600;}
+.big-picker-btns{display:flex; gap:6px;}
+.big-btn{width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:14px; font-weight:700; font-family:'Inter',sans-serif; box-shadow:var(--shadow-sm); transition:transform .12s ease;}
+.big-btn:active{transform:scale(.9);}
+.big-btn.active{background:var(--num); color:#F3FBF9; border-color:var(--num);}
+.small-picker-hint{font-size:12.5px; color:var(--muted);}
+
+.answer-box{
+  min-height:66px; width:100%; border-radius:16px; border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; text-align:center; padding:14px 18px;
+  font-family:'Fraunces',serif; font-size:clamp(18px,5vw,26px); color:var(--ink); background:var(--card);
+  box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, border-color .15s ease, background .15s ease;
+}
+.answer-box.empty{color:var(--muted); font-family:'Inter',sans-serif; font-size:14px; background:transparent; border-style:dashed; box-shadow:none;}
+.answer-box.miss{color:var(--bad); font-family:'Inter',sans-serif; font-size:15px; border-color:var(--bad); background:var(--bad-soft);}
+.answer-box.has-steps{flex-direction:column; align-items:stretch; text-align:left; padding:14px 16px; gap:8px; max-height:210px; overflow-y:auto;}
+.answer-box.has-lines{flex-direction:column; align-items:stretch; text-align:left; padding:14px 18px; gap:10px;}
+.result-line{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; font-family:'Inter',sans-serif; font-size:14px; color:var(--muted);}
+.result-line .result-word{font-family:'Fraunces',serif; font-weight:700; font-size:clamp(20px,5.5vw,28px); color:var(--word); line-height:1.15;}
+.result-line .result-count{font-size:13px; color:var(--muted); font-family:'Inter',sans-serif;}
+.steps{display:flex; flex-direction:column; gap:7px;}
+.step-row{display:flex; align-items:baseline; gap:10px;}
+.step-num{flex:0 0 20px; height:20px; border-radius:50%; background:var(--num-soft); color:var(--num); font-size:11px; font-weight:700; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center;}
+.step-eq{font-family:'Fraunces',serif; font-size:17px; color:var(--ink);}
+.step-eq strong{color:var(--num);}
+.step-final{margin-top:2px; padding-top:9px; border-top:1px dashed var(--line); font-family:'Inter',sans-serif; font-size:13.5px; font-weight:700; color:var(--num);}
+
+/* ops row for numbers */
+.ops{display:flex; gap:10px; width:100%; justify-content:center;}
+.op{
+  flex:1; max-width:80px; aspect-ratio:1/1; border-radius:50%; border:1px solid var(--line);
+  background:var(--card); color:var(--num); font-size:clamp(20px,5.5vw,27px); font-family:'Fraunces',serif;
+  display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm); transition:transform .12s ease, box-shadow .15s ease;
+}
+.op:active{transform:scale(.93);}
+.op.active{background:var(--num); color:#F3FBF9; border-color:var(--num); box-shadow:var(--shadow-md);}
+
+.bottom{display:flex; gap:10px; padding-top:16px;}
+.btn{
+  flex:1; padding:16px 10px; border-radius:14px; border:none; font-size:15px; font-weight:600;
+  font-family:'Inter',sans-serif; letter-spacing:.1px; transition:transform .12s ease, box-shadow .15s ease;
+}
+.btn:active{transform:scale(.97);}
+.btn.primary{background:var(--word); color:#FBF3E7; box-shadow:0 8px 20px rgba(139,90,43,.25);}
+.game.num .btn.primary{background:var(--num); color:#F1FBF9; box-shadow:0 8px 20px rgba(15,74,68,.22);}
+.btn.ghost{background:var(--card); color:var(--ink); border:1px solid var(--line); box-shadow:var(--shadow-sm);}
+.btn.icon{flex:0 0 54px; padding:16px 0; font-size:18px;}
+.btn:disabled{opacity:.35; box-shadow:none;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div id="home">
+    <h1>Kelime & Sayı</h1>
+    <hr class="rule">
+    <p class="sub">Bir mod seç, harfleri ya da sayıları çek.</p>
+    <div class="picker">
+      <div class="pick-card word" tabindex="0" onclick="openGame('word')" onkeydown="if(event.key==='Enter')openGame('word')">
+        <div class="glyph">Aa</div>
+        <div class="label">Kelime</div>
+        <div class="desc">Rastgele harflerden en uzun kelimeyi bul</div>
+      </div>
+      <div class="pick-card num" tabindex="0" onclick="openGame('num')" onkeydown="if(event.key==='Enter')openGame('num')">
+        <div class="glyph">9</div>
+        <div class="label">Sayı</div>
+        <div class="desc">Sayılarla hedefe ulaş</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="game word" id="wordGame">
+    <div class="topbar">
+      <button class="back" onclick="goHome()">‹ Geri</button>
+      <div class="mode-title">Kelime</div>
+      <div class="timer" id="wordTimer">30</div>
+      <button class="help-btn" id="wordHelpBtn" onclick="toggleHelp('word')">?</button>
+    </div>
+    <div class="help-text" id="wordHelp">
+      Ekrandaki 9 harften, aklına gelen bir kelimeyi oluşturmak için harflere sırayla dokun — seçtiğin harfler aşağıdaki kutuda birleşerek görünür. Bir harfi çıkarmak için tekrar dokun, baştan başlamak için "Seçimi temizle"yi kullan. Kelimeni sözlükte olup olmadığını "Kontrol Et" ile öğrenebilir, ya da "Cevabı Göster" ile en uzun kelimeyi görebilirsin.
+    </div>
+    <div class="stage">
+      <div class="tiles" id="letterTiles"></div>
+      <button class="btn-link" id="clearWordBtn" onclick="clearWordSelection()">Seçimi temizle</button>
+      <div class="answer-box empty" id="wordAnswer">Harflere dokunarak kendi kelimeni oluştur</div>
+    </div>
+    <div class="bottom">
+      <button class="btn ghost" onclick="drawLetters()">Yeni Harfler</button>
+      <button class="btn ghost" onclick="checkWord()">Kontrol Et</button>
+      <button class="btn primary" onclick="showWordAnswer()">Cevabı Göster</button>
+    </div>
+  </div>
+
+  <div class="game num" id="numGame">
+    <div class="topbar">
+      <button class="back" onclick="goHome()">‹ Geri</button>
+      <div class="mode-title">Sayı</div>
+      <div class="timer" id="numTimer">30</div>
+      <button class="help-btn" id="numHelpBtn" onclick="toggleHelp('num')">?</button>
+    </div>
+    <div class="help-text" id="numHelp">
+      Önce kaç büyük sayı (25, 50, 75, 100) istediğini seç — kalanı küçük sayılardan (1-10, ikişer adet) tamamlanır. Ardından iki sayı seç, bir işlem (+ − × ÷) seç — sonuç, üstteki kutuda ayrıca gösterilir ve yeni bir taş olarak eklenir. Yanlış seçim yaptıysan "Seçimi temizle" ile seçimi iptal et; işlemi tamamladıktan sonra pişman olduysan "Geri Al" ile son adımı geri al.
+    </div>
+    <div class="stage">
+      <div class="big-picker">
+        <span class="big-picker-label">Büyük sayı</span>
+        <div class="big-picker-btns" id="bigBtns"></div>
+        <span class="small-picker-hint" id="smallHint"></span>
+      </div>
+      <div>
+        <div class="target-cap" style="text-align:center">Hedef sayı</div>
+        <div class="target-big" id="targetNum">–</div>
+      </div>
+      <div class="last-op" id="lastOp"></div>
+      <div class="tiles" id="numTiles"></div>
+      <div class="ops">
+        <button class="op" data-op="+" onclick="pickOp('+')">+</button>
+        <button class="op" data-op="-" onclick="pickOp('-')">−</button>
+        <button class="op" data-op="*" onclick="pickOp('*')">×</button>
+        <button class="op" data-op="/" onclick="pickOp('/')">÷</button>
+      </div>
+      <button class="btn-link" id="clearSelBtn" onclick="clearSelection()">Seçimi temizle</button>
+      <div class="answer-box empty" id="numAnswer">Sayı çift seç, işlem seç, ikinci sayıyı seç</div>
+    </div>
+    <div class="bottom">
+      <button class="btn ghost" id="undoBtn" onclick="undoNum()" disabled>↺ Geri Al</button>
+      <button class="btn ghost" onclick="drawNumbers()">Yeni Tur</button>
+      <button class="btn primary" onclick="showNumAnswer()">Cevabı Göster</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------- shared ---------- */
+function goHome(){
+  document.getElementById('home').style.display='flex';
+  document.getElementById('wordGame').classList.remove('active');
+  document.getElementById('numGame').classList.remove('active');
+}
+function openGame(mode){
+  document.getElementById('home').style.display='none';
+  if(mode==='word'){ document.getElementById('wordGame').classList.add('active'); if(!letters.length) drawLetters(); }
+  else { document.getElementById('numGame').classList.add('active'); if(!numbers.length) drawNumbers(); }
+}
+function toggleHelp(mode){
+  const el = document.getElementById(mode+'Help');
+  const btn = document.getElementById(mode+'HelpBtn');
+  const open = el.classList.toggle('open');
+  btn.classList.toggle('on', open);
+}
+
+/* ---------- countdown timer ---------- */
+let wordTimerInt = null, wordTimeLeft = 30;
+let numTimerInt = null, numTimeLeft = 30;
+
+function tickDisplay(id, val){
+  const el = document.getElementById(id);
+  el.textContent = val;
+  el.classList.toggle('low', val<=10);
+}
+
+function startWordTimer(){
+  clearInterval(wordTimerInt);
+  wordTimeLeft = 30;
+  tickDisplay('wordTimer', wordTimeLeft);
+  wordTimerInt = setInterval(()=>{
+    wordTimeLeft--;
+    tickDisplay('wordTimer', Math.max(wordTimeLeft,0));
+    if(wordTimeLeft<=0){ clearInterval(wordTimerInt); showWordAnswer(); }
+  },1000);
+}
+
+function startNumTimer(){
+  clearInterval(numTimerInt);
+  numTimeLeft = 30;
+  tickDisplay('numTimer', numTimeLeft);
+  numTimerInt = setInterval(()=>{
+    numTimeLeft--;
+    tickDisplay('numTimer', Math.max(numTimeLeft,0));
+    if(numTimeLeft<=0){ clearInterval(numTimerInt); showNumAnswer(); }
+  },1000);
+}
+
+/* ---------- WORD MODE ---------- */
+const DICT = ["ev","su","ay","ok","at","el","ot","un","dağ","göl","kar","kaş","kat","kel","kes","kır","köy","kum","kur","kuş","mal","pas","sap","sar","saz","sis","son","sor","soy","süt","taç","tan","taş","tat","tay","tek","tel","ten","ter","top","tuz","van","var","yaş","yaz","yel","yem","yer","yol","yön","yük","yüz","zar",
+"akar","akım","akış","alan","alet","alev","anıt","araç","asal","asır","ateş","ayak","ayar","baba","bacı","balo","bant","bina","boya","cami","dana","dara","dere","ders","dert","deva","dolu","düve","ekim","ekin","emek","eser","esir","evli","evre","ezik","fare","fena","gece","gemi","göze","hane","harf","hava","hece","ırak","iğne","ipek","ışık","izin","kanı","kapı","kara","karı","kart","kasa","kase","keçi","kese","kına","kira","kova","köşe","kule","lira","mide","nine","oda","okur","olay","omur","orak","oran","orta","otel","oyun","para","peki","saat","sade","saha","sarı","sıra","soba","soru","spor","süre","tane","tepe","ucuz","umut","uzak","vana","vazo","veri","yara","yarı","yazı","yeni","yine","yurt","zarf","masa","tren","uçak","çatı",
+"alkış","balık","banka","beste","bilgi","çilek","davul","deniz","dergi","direk","doğal","düğün","güneş","ırmak","kabuk","kalem","kanal","kapak","karar","katar","kavga","kılıç","kitap","koyun","kulaç","kuzey","limon","lokum","madde","marul","masal","meyve","müzik","nefis","orman","pazar","resim","sabun","salon","sınav","sokak","tarak","tavuk","tekne","temel","tuval","uzman","vakit","kahve","simit","silgi","çanta","kaşık","çatal","bıçak","tabak","duvar","nehir","şehir","cadde","araba",
+"elbise","gemici","hikaye","kelime","market","mektup","minder","sandık","tavşan","terazi","yalnız","yorgun","yastık","yağmur","deprem","defter","gözlük","bardak","kasaba","otobüs",
+"anahtar","çamaşır","kelebek","pencere","telefon","yazılım","karınca","kırmızı","tencere",
+"sandalye","hazırlık","yağmurlu","mükemmel","çikolata","ayakkabı","kitaplık","bisiklet",
+"gökkuşağı",
+"iş","aş","boy","buz","çay","gün","hız","kek","köz","kız","pil","sac","saç","sır","tuş","yan","yat","gaz","göz","diz","düz","boş","dip","dış","iyi","kod","kol","nal","yağ","gül","güç","göç","süs",
+"asit","boru","elma","erik","fide","gaga","halı","jilet","ördek","örgü","paket","palto","pamuk","peynir","pilav","semt","sepet","somun","süpür","şeker","tarih","testi","turşu","yazar","zeytin","anket","bahar","balon","banyo","baraj","bebek","çekim","çorap","delil","demir","devre","dosya","düşün","ekmek","fabrika","falan","fikir","görev","gövde","günah","gurur","hakim","hamam","hasar","hasta","hedef","kader","kanun","karne","kasap","kasım","katkı","kefil","kimya","konak","kulak","lamba","lokal","maden","makas","mesaj","metin","motor","nokta","obruk","okyanus","omuz","panik","peçe","perde","peron","petek","pilot","polis","radar","reçel","resmi","ruhsat","saray","servis","sonuç","sözlü","sürat","tabela","tanık","tarım","tavan","temiz","teras","timsah","traş","tunç","vakıf","vazife","vergi","vesika","yatak","yumurta","zambak","zümrüt",
+"antika","armut","badem","bahçe","balina","beyaz","çamur","çelik","çerçeve","çeşme","çiçek","çiftçi","dalga","domates","duman","düdük","fırın","gerçek","gurbet","halter","havlu","ıslak","kalabalık","kamera","kanepe","kapasite","karakol","kaplumbağa","karpuz","koltuk","kösele","kütüphane","leylek","manzara","maymun","meydan","mühür","nişan","orkestra","pastane","pınar","rüzgar","saksı","şemsiye","tabanca","tekerlek","terzi","turist","yelken","yıldız","zebra"];
+
+const POOL = "AAAAAAAAAAAAEEEEEEEEİİİİİİİİNNNNNNNRRRRRRRLLLLLLKKKKKDDDDMMMMUUUYYYTTTSSSOOBBZZÇGŞCPÖVHĞFÜI";
+let letters = [];
+let wordSelection = [];
+let letterUid = 0;
+
+function trUpper(s){ return s.toLocaleUpperCase('tr-TR'); }
+function trLower(s){ return s.toLocaleLowerCase('tr-TR'); }
+
+function drawLetters(){
+  letters = [];
+  wordSelection = [];
+  const arr = POOL.split('');
+  for(let i=0;i<9;i++){
+    letters.push({id:letterUid++, ch: arr[Math.floor(Math.random()*arr.length)]});
+  }
+  renderLetters();
+  updateWordPreview();
+  updateClearWordBtn();
+  startWordTimer();
+}
+
+function renderLetters(){
+  const wrap = document.getElementById('letterTiles');
+  wrap.innerHTML = '';
+  letters.forEach(l=>{
+    const d = document.createElement('div');
+    d.className='tile' + (wordSelection.includes(l.id)?' sel':'');
+    d.textContent = l.ch;
+    d.onclick = ()=>tapLetter(l.id);
+    wrap.appendChild(d);
+  });
+}
+
+function tapLetter(id){
+  const idx = wordSelection.indexOf(id);
+  if(idx>-1){ wordSelection.splice(idx,1); }
+  else { wordSelection.push(id); }
+  renderLetters();
+  updateWordPreview();
+  updateClearWordBtn();
+}
+
+function clearWordSelection(){
+  wordSelection = [];
+  renderLetters();
+  updateWordPreview();
+  updateClearWordBtn();
+}
+
+function updateClearWordBtn(){
+  document.getElementById('clearWordBtn').classList.toggle('show', wordSelection.length>0);
+}
+
+function currentWord(){
+  return wordSelection.map(id=>letters.find(l=>l.id===id).ch).join('');
+}
+
+function updateWordPreview(){
+  const box = document.getElementById('wordAnswer');
+  const word = currentWord();
+  if(!word){
+    box.className='answer-box empty';
+    box.textContent = 'Harflere dokunarak kendi kelimeni oluştur';
+  } else {
+    box.className='answer-box';
+    box.textContent = trUpper(word) + '  ·  ' + word.length + ' harf';
+  }
+}
+
+function checkWord(){
+  const word = currentWord();
+  if(!word) return;
+  const box = document.getElementById('wordAnswer');
+  if(DICT.includes(trLower(word))){
+    box.className='answer-box has-lines';
+    box.innerHTML = '<div class="result-line">Doğru kelime: <span class="result-word">' + trUpper(word) + '</span><span class="result-count">· ' + word.length + ' harf</span></div>';
+  } else {
+    box.className='answer-box miss';
+    box.textContent = trUpper(word) + ' sözlükte yok, tekrar dene';
+  }
+}
+
+function longestWordFrom(letterArr){
+  const counts = {};
+  letterArr.forEach(l=>{ const k = trLower(l); counts[k]=(counts[k]||0)+1; });
+  let best = '';
+  for(const w of DICT){
+    if(w.length <= best.length) continue;
+    const wc = {};
+    let ok = true;
+    for(const ch of w){ wc[ch]=(wc[ch]||0)+1; if(wc[ch] > (counts[ch]||0)){ ok=false; break; } }
+    if(ok) best = w;
+  }
+  return best;
+}
+
+function showWordAnswer(){
+  clearInterval(wordTimerInt);
+  const userWord = currentWord();
+  wordSelection = [];
+  renderLetters();
+  updateClearWordBtn();
+  const best = longestWordFrom(letters.map(l=>l.ch));
+  const box = document.getElementById('wordAnswer');
+  const lines = [];
+  if(userWord) lines.push({label:'Kelimen:', word:trUpper(userWord), count:userWord.length});
+  if(best) lines.push({label:'Sözlükteki en uzun kelime:', word:trUpper(best), count:best.length});
+  if(!lines.length){
+    box.className='answer-box miss';
+    box.textContent = 'Cevap yok';
+    return;
+  }
+  box.className = 'answer-box has-lines';
+  box.innerHTML = '';
+  lines.forEach(l=>{
+    const row = document.createElement('div');
+    row.className = 'result-line';
+    row.innerHTML = l.label + ' <span class="result-word">' + l.word + '</span><span class="result-count">· ' + l.count + ' harf</span>';
+    box.appendChild(row);
+  });
+}
+
+/* ---------- NUMBER MODE ---------- */
+let numbers = [];   // {id,value,expr,used}
+let selection = [];
+let pendingOp = null;
+let uid = 0;
+let target = 0;
+let numHistory = [];
+const LARGE_VALUES = [25,50,75,100];
+let selectedLarge = 2;
+
+function updateUndoBtn(){
+  document.getElementById('undoBtn').disabled = numHistory.length===0;
+}
+
+function shuffleArr(a){
+  const arr = a.slice();
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function renderBigPicker(){
+  const wrap = document.getElementById('bigBtns');
+  wrap.innerHTML='';
+  for(let i=0;i<=4;i++){
+    const b = document.createElement('button');
+    b.className = 'big-btn' + (i===selectedLarge?' active':'');
+    b.textContent = i;
+    b.title = i + ' büyük, ' + (6-i) + ' küçük';
+    b.onclick = ()=>{ selectedLarge=i; drawNumbers(); };
+    wrap.appendChild(b);
+  }
+  document.getElementById('smallHint').textContent = (6-selectedLarge) + ' küçük';
+}
+
+function drawNumbers(){
+  numbers = [];
+  uid = 0;
+  numHistory = [];
+  const bigCount = selectedLarge;
+  const smallCount = 6 - bigCount;
+  const bigDraw = shuffleArr(LARGE_VALUES).slice(0, bigCount);
+  const smallDeck = [];
+  for(let v=1; v<=10; v++){ smallDeck.push(v); smallDeck.push(v); }
+  const smallDraw = shuffleArr(smallDeck).slice(0, smallCount);
+  const draw = shuffleArr(bigDraw.concat(smallDraw));
+  draw.forEach(v=>numbers.push({id:uid++, value:v, expr:String(v), used:false}));
+  target = Math.floor(Math.random()*899)+101;
+  selection = []; pendingOp = null;
+  document.getElementById('targetNum').textContent = target;
+  document.querySelectorAll('.op').forEach(o=>o.classList.remove('active'));
+  const box = document.getElementById('numAnswer');
+  box.className='answer-box empty';
+  box.textContent = 'Sayı çift seç, işlem seç, ikinci sayıyı seç';
+  hideLastOp();
+  renderNumbers();
+  updateUndoBtn();
+  updateClearBtn();
+  renderBigPicker();
+  startNumTimer();
+}
+
+function renderNumbers(){
+  const wrap = document.getElementById('numTiles');
+  wrap.innerHTML='';
+  numbers.forEach(n=>{
+    const d = document.createElement('div');
+    d.className='tile' + (n.used?' used':'') + (selection.includes(n.id)?' sel':'') + (n.derived?' derived':'');
+    const val = document.createElement('div');
+    val.textContent = n.value;
+    d.appendChild(val);
+    if(n.derived){
+      const cap = document.createElement('div');
+      cap.className='tile-expr';
+      cap.textContent = n.formedFrom;
+      d.appendChild(cap);
+    }
+    d.onclick = ()=>tapNumber(n.id);
+    wrap.appendChild(d);
+  });
+}
+
+function pickOp(op){
+  pendingOp = op;
+  document.querySelectorAll('.op').forEach(o=>o.classList.toggle('active', o.dataset.op===op));
+  updateClearBtn();
+}
+
+function updateClearBtn(){
+  document.getElementById('clearSelBtn').classList.toggle('show', selection.length>0 || !!pendingOp);
+}
+
+function clearSelection(){
+  selection = []; pendingOp = null;
+  document.querySelectorAll('.op').forEach(o=>o.classList.remove('active'));
+  renderNumbers();
+  updateClearBtn();
+}
+
+function showLastOp(text){
+  const el = document.getElementById('lastOp');
+  el.textContent = text;
+  el.classList.add('show');
+}
+function hideLastOp(){
+  document.getElementById('lastOp').classList.remove('show');
+}
+
+function tapNumber(id){
+  const n = numbers.find(x=>x.id===id);
+  if(!n || n.used) return;
+  if(selection.includes(id)){ selection = selection.filter(s=>s!==id); renderNumbers(); updateClearBtn(); return; }
+  selection.push(id);
+  if(selection.length===2 && pendingOp){
+    combine(selection[0], selection[1], pendingOp);
+  }
+  renderNumbers();
+  updateClearBtn();
+}
+
+function combine(id1,id2,op){
+  const a = numbers.find(x=>x.id===id1);
+  const b = numbers.find(x=>x.id===id2);
+  let val;
+  if(op==='+') val = a.value+b.value;
+  else if(op==='-') val = a.value-b.value;
+  else if(op==='*') val = a.value*b.value;
+  else { if(b.value===0 || a.value % b.value !== 0){ flashInvalid(); selection=[]; pendingOp=null; document.querySelectorAll('.op').forEach(o=>o.classList.remove('active')); updateClearBtn(); return; } val = a.value/b.value; }
+  if(val<=0){ flashInvalid(); selection=[]; pendingOp=null; document.querySelectorAll('.op').forEach(o=>o.classList.remove('active')); updateClearBtn(); return; }
+  numHistory.push(JSON.parse(JSON.stringify(numbers)));
+  updateUndoBtn();
+  const sym = op==='*'?'×':op==='/'?'÷':op;
+  a.used=true; b.used=true;
+  numbers.push({id:uid++, value:val, expr:'('+a.expr+sym+b.expr+')', used:false, derived:true, formedFrom:a.value+' '+sym+' '+b.value});
+  selection=[]; pendingOp=null;
+  document.querySelectorAll('.op').forEach(o=>o.classList.remove('active'));
+  updateClearBtn();
+  showLastOp(a.value + ' ' + sym + ' ' + b.value + ' = ' + val);
+  const box = document.getElementById('numAnswer');
+  const remaining = numbers.filter(n=>!n.used);
+  if(remaining.length===1 && remaining[0].value===target){
+    box.className='answer-box'; box.textContent = 'Hedefe ulaştın! ' + remaining[0].expr;
+  } else {
+    box.className='answer-box empty'; box.textContent = 'Devam et: sayı çift seç, işlem seç, sayı seç';
+  }
+}
+
+function undoNum(){
+  if(!numHistory.length) return;
+  numbers = numHistory.pop();
+  selection=[]; pendingOp=null;
+  document.querySelectorAll('.op').forEach(o=>o.classList.remove('active'));
+  const box = document.getElementById('numAnswer');
+  box.className='answer-box empty';
+  box.textContent = 'Son işlem geri alındı';
+  hideLastOp();
+  renderNumbers();
+  updateUndoBtn();
+  updateClearBtn();
+}
+
+function flashInvalid(){
+  const box = document.getElementById('numAnswer');
+  box.className='answer-box miss';
+  box.textContent = 'Bu işlem geçersiz (negatif veya tam bölünmüyor)';
+}
+
+function solveNumbers(vals, tgt){
+  const steps = [];
+  function rec(list){
+    if(list.length===1){ return Math.abs(list[0]-tgt)<1e-9; }
+    for(let i=0;i<list.length;i++){
+      for(let j=0;j<list.length;j++){
+        if(i===j) continue;
+        const rest = list.filter((_,k)=>k!==i&&k!==j);
+        const a = list[i], b = list[j];
+        const cands = [];
+        cands.push({v:a+b, sym:'+'});
+        if(a>b) cands.push({v:a-b, sym:'-'});
+        cands.push({v:a*b, sym:'×'});
+        if(b!==0 && a % b===0) cands.push({v:a/b, sym:'÷'});
+        for(const c of cands){
+          if(c.v<=0) continue;
+          steps.push({a, sym:c.sym, b, result:c.v});
+          if(rec(rest.concat([c.v]))) return true;
+          steps.pop();
+        }
+      }
+    }
+    return false;
+  }
+  const ok = rec(vals.map(v=>v.value));
+  return ok ? steps.slice() : null;
+}
+
+function showNumAnswer(){
+  clearInterval(numTimerInt);
+  const startNums = initialSix.length ? initialSix : numbers;
+  const steps = solveNumbers(startNums, target);
+  const box = document.getElementById('numAnswer');
+  box.innerHTML = '';
+  if(steps){
+    box.className = 'answer-box has-steps';
+    const list = document.createElement('div');
+    list.className = 'steps';
+    steps.forEach((s,i)=>{
+      const row = document.createElement('div');
+      row.className = 'step-row';
+      const numEl = document.createElement('span');
+      numEl.className = 'step-num';
+      numEl.textContent = i+1;
+      const eqEl = document.createElement('span');
+      eqEl.className = 'step-eq';
+      eqEl.innerHTML = s.a + ' ' + s.sym + ' ' + s.b + ' = <strong>' + s.result + '</strong>';
+      row.appendChild(numEl); row.appendChild(eqEl);
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+    const final = document.createElement('div');
+    final.className = 'step-final';
+    final.textContent = 'Sonuç ' + target + ' — hedefe tam ulaşıldı!';
+    box.appendChild(final);
+  } else {
+    box.className = 'answer-box miss';
+    box.textContent = 'Cevap yok';
+  }
+}
+
+let initialSix = [];
+const _origDraw = drawNumbers;
+drawNumbers = function(){
+  _origDraw();
+  initialSix = numbers.map(n=>({value:n.value, expr:n.expr}));
+};
+</script>
+<script>
+// Offline oynanabilirlik + otomatik içerik güncellemesi için service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
