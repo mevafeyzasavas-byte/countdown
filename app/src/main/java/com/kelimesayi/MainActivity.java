@@ -1,4 +1,4 @@
-﻿package com.kelimesayi;
+package com.kelimesayi;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
